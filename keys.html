@@ -65,24 +65,12 @@
       transform: scale(1.05);
       cursor: pointer;
     }
-
-    #gameOverScreen {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: black url('pantalla.png') center center no-repeat;
-      background-size: cover;
-      z-index: 9999;
-      display: none;
-    }
   </style>
 </head>
 <body>
 
   <button id="startBtn">Inicio</button>
   <div id="game"></div>
-  <div id="gameOverScreen"></div>
 
   <audio id="bgMusic" src="keys.mp3" loop></audio>
   <audio id="errorSound" src="error.mp3"></audio>
@@ -158,8 +146,8 @@
 
     function startMixing(keys) {
       const startTime = Date.now();
-      const duration = 12000; // 14 segundos
-      const interval = 600; // cambio cada 0.3 segundos
+      const duration = 14000; // 14 segundos
+      const interval = 250; // más rápido
 
       let mixInterval = setInterval(() => {
         const now = Date.now();
@@ -181,13 +169,17 @@
         el.onclick = () => {
           if (src === realKeyAfterGreen) {
             alert("✅ ¡Correcto!");
-            showSequence(); // Solo reinicia si aciertas
+            showSequence(); // volver a jugar si acierta
           } else {
             errorSound.play();
-            document.getElementById("gameOverScreen").style.display = "block";
             music.pause();
             music.currentTime = 0;
+
             keyElements.forEach(({ el }) => el.onclick = null);
+
+            setTimeout(() => {
+              window.location.href = "https://www.google.com"; // puedes cambiarlo a otra URL
+            }, 1000);
           }
         };
       });
@@ -209,13 +201,12 @@
 
         setTimeout(() => {
           startMixing(showKeys);
-        }, 4000); // empieza a mezclar a los 6s (2 + 4)
-      }, 2000); // muestra la verde por 2s
+        }, 4000); // a los 6s en total
+      }, 2000); // muestra la verde 2s
     }
 
     startBtn.addEventListener("click", () => {
       music.play();
-      document.getElementById("gameOverScreen").style.display = "none";
       startBtn.style.display = "none";
       showSequence();
     });
