@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Keys Limbo</title>
+  <style>
+    body {
+      background-color: #000611;
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #startBtn {
+      margin-top: 20px;
+      padding: 10px 25px;
+      font-size: 20px;
+      border: none;
+      background-color: limegreen;
+      color: black;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    #game {
+      position: relative;
+      width: 360px;
+      height: 560px;
+      margin-top: 30px;
+    }
+
+    .key-window {
+      position: absolute;
+      width: 140px;
+      height: 120px;
+      background-color: #222;
+      border-radius: 14px;
+      box-shadow: 0 0 10px #000;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: top 0.3s ease, left 0.3s ease;
+    }
+
+    .top-bar {
+      height: 20px;
+      background-color: #111;
+      color: red;
+      font-size: 12px;
+      padding: 0 5px;
+      display: flex;
+      align-items: center;
+    }
+
+    .key-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .key-window:hover {
+      transform: scale(1.05);
+      cursor: pointer;
+    }
+
+    #gameOverScreen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black url('pantalla.png') center center no-repeat;
+      background-size: cover;
+      z-index: 9999;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="startBtn">Inicio</button>
+  <div id="game"></div>
+  <div id="gameOverScreen"></div>
+
+  <audio id="bgMusic" src="keys.mp3" loop></audio>
+  <audio id="errorSound" src="error.mp3"></audio>
+
+  <script>
+    const allKeys = [
+      "key_1.png", "key_2.png", "key_3.png", "key_4.png",
+      "key_5.png", "key_6.png", "key_7.png", "key_8.png"
+    ];
+    const greenKey = "llave_verde.png";
+    let correctIndex = -1;
+    let realKeyAfterGreen = "";
+    let keyElements = [];
+
+    const game = document.getElementById("game");
+    const startBtn = document.getElementById("startBtn");
+    const music = document.getElementById("bgMusic");
+    const errorSound = document.getElementById("errorSound");
+
+    const positions = [
+      { top: 0, left: 0 },
+      { top: 140, left: 0 },
+      { top: 280, left: 0 },
+      { top: 420, left: 0 },
+      { top: 0, left: 180 },
+      { top: 140, left: 180 },
+      { top: 280, left: 180 },
+      { top: 420, left: 180 }
+    ];
+
+    function shuffleArray(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function createInitialKeys(keys) {
+      game.innerHTML = "";
+      keyElements = [];
+
+      keys.forEach((src, i) => {
+        const keyDiv = document.createElement("div");
+        keyDiv.className = "key-window";
+        keyDiv.style.top = positions[i].top + "px";
+        keyDiv.style.left = positions[i].left + "px";
+
+        const topBar = document.createElement("div");
+        topBar.className = "top-bar";
+        topBar.textContent = "🔑 - ☐ ⨉";
+
+        const img = document.createElement("img");
+        img.className = "key-img";
+        img.src = src;
+
+        keyDiv.appendChild(topBar);
+        keyDiv.appendChild(img);
+
+        game.appendChild(keyDiv);
+        keyElements.push({ el: keyDiv, src: src });
+      });
+    }
+
+    function moveKeys(order) {
+      order.forEach((idx, i) => {
+        const el = keyElements[idx].el;
+        el.style.top = positions[i].top + "px";
+        el.style.left = positions[i].left + "px";
+      });
+    }
+
+    function startMixing(keys) {
+      const startTime = Date.now();
+      const duration = 12000; // 14 segundos
+      const interval = 600; // cambio cada 0.3 segundos
+
+      let mixInterval = setInterval(() => {
+        const now = Date.now();
+        if (now - startTime >= duration) {
+          clearInterval(mixInterval);
+          music.pause();
+          music.currentTime = 0;
+          setTimeout(() => enableClickEvents(), 500);
+        } else {
+          const newOrder = shuffleArray([...Array(8).keys()]);
+          moveKeys(newOrder);
+          keyElements = newOrder.map(i => keyElements[i]);
+        }
+      }, interval);
+    }
+
+    function enableClickEvents() {
+      keyElements.forEach(({ el, src }) => {
+        el.onclick = () => {
+          if (src === realKeyAfterGreen) {
+            alert("✅ ¡Correcto!");
+            showSequence(); // Solo reinicia si aciertas
+          } else {
+            errorSound.play();
+            document.getElementById("gameOverScreen").style.display = "block";
+            music.pause();
+            music.currentTime = 0;
+            keyElements.forEach(({ el }) => el.onclick = null);
+          }
+        };
+      });
+    }
+
+    function showSequence() {
+      const keys = [...allKeys];
+      correctIndex = Math.floor(Math.random() * keys.length);
+      realKeyAfterGreen = keys[correctIndex];
+
+      const showKeys = [...keys];
+      showKeys[correctIndex] = greenKey;
+
+      createInitialKeys(showKeys);
+
+      setTimeout(() => {
+        showKeys[correctIndex] = realKeyAfterGreen;
+        createInitialKeys(showKeys);
+
+        setTimeout(() => {
+          startMixing(showKeys);
+        }, 4000); // empieza a mezclar a los 6s (2 + 4)
+      }, 2000); // muestra la verde por 2s
+    }
+
+    startBtn.addEventListener("click", () => {
+      music.play();
+      document.getElementById("gameOverScreen").style.display = "none";
+      startBtn.style.display = "none";
+      showSequence();
+    });
+  </script>
+
+</body>
+</html>
